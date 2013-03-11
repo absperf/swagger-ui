@@ -53,6 +53,11 @@
       this.progress('fetching resource list: ' + this.discoveryUrl);
       return jQuery.getJSON(this.discoveryUrl, function(response) {
         var res, resource, _i, _j, _len, _len1, _ref, _ref1;
+
+        //SSBE-FIX: response.apis is response.items
+        response.apis = response.items;
+        //END
+
         if (response.apiVersion != null) {
           _this.apiVersion = response.apiVersion;
         }
@@ -193,28 +198,26 @@
   SwaggerResource = (function() {
 
     function SwaggerResource(resourceObj, api) {
+      this.href = resourceObj.href;
       var parts,
         _this = this;
       this.api = api;
-      this.path = this.api.resourcePath != null ? this.api.resourcePath : resourceObj.path;
-      this.description = resourceObj.description;
-      parts = this.path.split("/");
-      this.name = parts[parts.length - 1].replace('.{format}', '');
-      this.basePath = this.api.basePath;
       this.operations = {};
       this.operationsArray = [];
       this.modelsArray = [];
       this.models = {};
+      this.name = resourceObj.service_type
       if ((resourceObj.operations != null) && (this.api.resourcePath != null)) {
         this.api.progress('reading resource ' + this.name + ' models and operations');
         this.addModels(resourceObj.models);
         this.addOperations(resourceObj.path, resourceObj.operations);
         this.api[this.name] = this;
       } else {
-        if (this.path == null) {
+        if (this.href == null) {
           this.api.fail("SwaggerResources must have a path.");
         }
-        this.url = this.api.suffixApiKey(this.api.basePath + this.path.replace('{format}', 'json'));
+        this.url = this.api.suffixApiKey(this.href + '.json');
+        console.log("fetching resource " + this.name + ": " + this.url);
         this.api.progress('fetching resource ' + this.name + ': ' + this.url);
         jQuery.getJSON(this.url, function(response) {
           var endpoint, _i, _len, _ref;
