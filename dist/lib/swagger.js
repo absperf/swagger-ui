@@ -198,27 +198,29 @@
   SwaggerResource = (function() {
 
     function SwaggerResource(resourceObj, api) {
-      this.href = resourceObj.href;
       var parts,
         _this = this;
       this.api = api;
+      this.path = this.api.resourcePath != null ? this.api.resourcePath : this.findPathFromHref(resourceObj.href);
+      this.description = resourceObj.description;
+      parts = this.path.split("/");
+      this.name = parts[parts.length - 1].replace('.{format}', '');
+      this.basePath = this.findBaseFromHref(resourceObj.href);
       this.operations = {};
       this.operationsArray = [];
       this.modelsArray = [];
       this.models = {};
-      this.name = resourceObj.service_type
       if ((resourceObj.operations != null) && (this.api.resourcePath != null)) {
         this.api.progress('reading resource ' + this.name + ' models and operations');
         this.addModels(resourceObj.models);
         this.addOperations(resourceObj.path, resourceObj.operations);
         this.api[this.name] = this;
       } else {
-        if (this.href == null) {
+        if (this.path == null) {
           this.api.fail("SwaggerResources must have a path.");
         }
-        this.url = this.api.suffixApiKey(this.href + '.json');
-        console.log("fetching resource " + this.name + ": " + this.url);
-        this.api.progress('fetching resource ' + this.name + ': ' + this.url);
+        this.url = this.api.suffixApiKey(this.basePath + this.path + '.json');
+        this.api.progress('fetching resource ' + this.name + ': ' + this.url );
         jQuery.getJSON(this.url, function(response) {
           var endpoint, _i, _len, _ref;
           if ((response.basePath != null) && jQuery.trim(response.basePath).length > 0) {
@@ -240,6 +242,14 @@
           return _this.api.fail("Unable to read api '" + _this.name + "' from path " + _this.url + " (server returned " + error.statusText + ")");
         });
       }
+    }
+
+    SwaggerResource.prototype.findPathFromHref = function(href) {
+      return "/" + href.split('/').slice(3).join('/');
+    }
+
+    SwaggerResource.prototype.findBaseFromHref = function(href) {
+      return href.split('/').slice(0, 3).join('/');
     }
 
     SwaggerResource.prototype.addModels = function(models) {
